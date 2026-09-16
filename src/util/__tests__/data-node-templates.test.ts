@@ -568,6 +568,16 @@ describe('NPC template', () => {
 		expect(validateTemplateValue(npc, {})).toEqual([]);
 	});
 
+	it('accepts an optional interactText string and rejects other types', () => {
+		expect(validateTemplateValue(npc, {interactText: 'Talk'})).toEqual([]);
+		expect(applyTemplate(npc, {interactText: 'Talk'})).toEqual({
+			interactText: 'Talk'
+		});
+		expect(validateTemplateValue(npc, {interactText: 5})).toEqual([
+			{message: '"interactText" must be a string', path: ['interactText']}
+		]);
+	});
+
 	it('fills a toggled-on proximity trigger with its required distance only', () => {
 		expect(applyTemplate(npc, {proximityTrigger: {}})).toEqual({
 			proximityTrigger: {triggerDistance: 0}

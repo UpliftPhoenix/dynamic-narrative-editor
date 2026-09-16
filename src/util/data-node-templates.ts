@@ -313,6 +313,13 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 		color: '#18ff50',
 		fields: [
 			{
+				// Label shown on the NPC's interaction prompt in-game. Absent means
+				// the game's default prompt.
+				name: 'interactText',
+				type: 'string',
+				optional: true
+			},
+			{
 				// If present, the NPC starts its dialog on its own when the player
 				// comes within triggerDistance, and can do so again after
 				// retriggerDelay if that's set.
