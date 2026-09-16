@@ -534,6 +534,38 @@ describe('updatePassage action creator with a text modifier node', () => {
 		]);
 	});
 
+	it('changes one field tag without disturbing another', () => {
+		story.passages[0].text =
+			'{"displayType": "hint", "sequence": "oneShotRandom"}';
+		story.passages[1].tags = [
+			'textmodifier:Hint-Mod',
+			'displayType:hint',
+			'sequence:oneShotRandom',
+			'unrelated'
+		];
+		updatePassage(
+			story,
+			story.passages[0],
+			{text: '{"displayType": "hint", "sequence": "oneShotOrdered"}'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls[1]).toEqual([
+			{
+				passageId: story.passages[1].id,
+				props: {
+					tags: [
+						'textmodifier:Hint-Mod',
+						'displayType:hint',
+						'unrelated',
+						'sequence:oneShotOrdered'
+					]
+				},
+				storyId: story.id,
+				type: 'updatePassage'
+			}
+		]);
+	});
+
 	it("doesn't touch linked passages when the data change leaves field tags the same", () => {
 		updatePassage(
 			story,

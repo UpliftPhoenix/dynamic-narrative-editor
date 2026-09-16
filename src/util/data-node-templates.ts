@@ -325,8 +325,9 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 	},
 	{
 		// Changes how linked passages' text is presented in-game. Linked
-		// passages carry e.g. a `displayType:hint` tag; the "default" display
-		// type is the same as an unmodified passage, so it adds no tag.
+		// passages carry e.g. `displayType:hint` and `sequence:oneShotRandom`
+		// tags; a "default" value is the same as an unmodified passage, so it
+		// adds no tag.
 		id: 'textmodifier',
 		name: 'Text Modifier',
 		silentValues: {},
@@ -339,7 +340,12 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 			{
 				name: 'displayType',
 				type: 'string',
-				enum: ['default', 'hint', 'bark']
+				enum: ['default', 'bark', 'hint', 'dialog']
+			},
+			{
+				name: 'sequence',
+				type: 'string',
+				enum: ['default', 'oneShotOrdered', 'oneShotRandom']
 			}
 		]
 	}

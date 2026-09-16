@@ -214,6 +214,11 @@ describe('isFieldTag', () => {
 		expect(isFieldTag('displayType:anything')).toBe(true);
 	});
 
+	it('recognizes every field of a field-tag template', () => {
+		expect(isFieldTag('sequence:oneShotRandom')).toBe(true);
+		expect(isFieldTag('sequence:default')).toBe(true);
+	});
+
 	it('returns false for other tags', () => {
 		expect(isFieldTag('displayType')).toBe(false);
 		expect(isFieldTag('trigger:My-Trigger')).toBe(false);
@@ -253,10 +258,29 @@ describe('nodeFieldTags', () => {
 		]);
 	});
 
-	it('omits fields holding their default value', () =>
+	it('returns one tag per non-default field, in template order', () => {
+		expect(
+			nodeFieldTags(
+				modifier('{"sequence": "oneShotRandom", "displayType": "bark"}')
+			)
+		).toEqual(['displayType:bark', 'sequence:oneShotRandom']);
+		expect(
+			nodeFieldTags(
+				modifier('{"displayType": "default", "sequence": "oneShotOrdered"}')
+			)
+		).toEqual(['sequence:oneShotOrdered']);
+	});
+
+	it('omits fields holding their default value', () => {
 		expect(nodeFieldTags(modifier('{"displayType": "default"}'))).toEqual(
 			[]
-		));
+		);
+		expect(
+			nodeFieldTags(
+				modifier('{"displayType": "default", "sequence": "default"}')
+			)
+		).toEqual([]);
+	});
 
 	it('omits fields that are missing, empty, or not scalars', () => {
 		expect(nodeFieldTags(modifier('{}'))).toEqual([]);
