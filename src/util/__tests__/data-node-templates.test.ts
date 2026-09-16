@@ -559,3 +559,61 @@ describe('mergeSilentValues()', () => {
 		expect(mergeSilentValues(currencyReward, [1, 2])).toEqual([1, 2]);
 	});
 });
+
+describe('NPC template', () => {
+	const npc = dataNodeTemplate('npc')!;
+
+	it('starts with no data, so existing name-only NPC nodes stay valid', () => {
+		expect(applyTemplate(npc, {})).toEqual({});
+		expect(validateTemplateValue(npc, {})).toEqual([]);
+	});
+
+	it('fills a toggled-on proximity trigger with its required distance only', () => {
+		expect(applyTemplate(npc, {proximityTrigger: {}})).toEqual({
+			proximityTrigger: {triggerDistance: 0}
+		});
+	});
+
+	it('accepts a proximity trigger with or without a retrigger delay', () => {
+		expect(
+			validateTemplateValue(npc, {proximityTrigger: {triggerDistance: 12}})
+		).toEqual([]);
+		expect(
+			validateTemplateValue(npc, {
+				proximityTrigger: {triggerDistance: 12, retriggerDelay: 30}
+			})
+		).toEqual([]);
+	});
+
+	it('rejects negative distances and delays and unknown trigger fields', () => {
+		expect(
+			validateTemplateValue(npc, {
+				proximityTrigger: {triggerDistance: -1, retriggerDelay: -5, junk: 1}
+			})
+		).toEqual([
+			{
+				message: '"triggerDistance" must be at least 0',
+				path: ['proximityTrigger', 'triggerDistance']
+			},
+			{
+				message: '"retriggerDelay" must be at least 0',
+				path: ['proximityTrigger', 'retriggerDelay']
+			},
+			{
+				message: '"junk" isn\'t part of the NPC template',
+				path: ['proximityTrigger', 'junk']
+			}
+		]);
+	});
+
+	it('reports a proximity trigger missing its distance', () => {
+		expect(
+			validateTemplateValue(npc, {proximityTrigger: {retriggerDelay: 3}})
+		).toEqual([
+			{
+				message: 'Missing required field "triggerDistance"',
+				path: ['proximityTrigger']
+			}
+		]);
+	});
+});

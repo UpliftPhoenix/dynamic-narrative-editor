@@ -307,12 +307,24 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 		id: 'npc',
 		name: 'NPC',
 		silentValues: {},
-		nameOnly: true,
 		tagLink: true,
 		linkPriority: true,
 		cardImage: npcPortrait,
 		color: '#18ff50',
-		fields: []
+		fields: [
+			{
+				// If present, the NPC starts its dialog on its own when the player
+				// comes within triggerDistance, and can do so again after
+				// retriggerDelay if that's set.
+				name: 'proximityTrigger',
+				type: 'object',
+				optional: true,
+				fields: [
+					{name: 'triggerDistance', type: 'number', min: 0},
+					{name: 'retriggerDelay', type: 'number', optional: true, min: 0}
+				]
+			}
+		]
 	},
 	{
 		id: 'setpiece',
