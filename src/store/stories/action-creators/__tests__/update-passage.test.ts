@@ -462,3 +462,121 @@ describe('updatePassage action creator', () => {
 		});
 	});
 });
+
+describe('updatePassage action creator with a text modifier node', () => {
+	let dispatch: StoriesDispatch;
+	let dispatchMock: jest.Mock;
+	let getState: () => StoriesState;
+	let story: Story;
+
+	beforeEach(() => {
+		dispatch = jest.fn();
+		dispatchMock = dispatch as jest.Mock;
+		story = fakeStory(3);
+		story.passages[0].name = 'Hint Mod';
+		story.passages[0].type = 'data';
+		story.passages[0].dataTemplate = 'textmodifier';
+		story.passages[0].text = '{"displayType": "hint"}';
+		story.passages[1].tags = [
+			'textmodifier:Hint-Mod',
+			'displayType:hint',
+			'unrelated'
+		];
+		story.passages[1].text = 'no links here';
+		story.passages[2].tags = ['displayType:hint'];
+		story.passages[2].text = 'no links here';
+		getState = jest.fn(() => [story]);
+	});
+
+	it("updates linked passages' field tags when the node's data changes", () => {
+		updatePassage(
+			story,
+			story.passages[0],
+			{text: '{"displayType": "bark"}'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls).toEqual([
+			[
+				{
+					passageId: story.passages[0].id,
+					props: {text: '{"displayType": "bark"}'},
+					storyId: story.id,
+					type: 'updatePassage'
+				}
+			],
+			[
+				{
+					passageId: story.passages[1].id,
+					props: {
+						tags: ['textmodifier:Hint-Mod', 'unrelated', 'displayType:bark']
+					},
+					storyId: story.id,
+					type: 'updatePassage'
+				}
+			]
+		]);
+	});
+
+	it("removes linked passages' field tags when the node's data returns to defaults", () => {
+		updatePassage(
+			story,
+			story.passages[0],
+			{text: '{"displayType": "default"}'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls[1]).toEqual([
+			{
+				passageId: story.passages[1].id,
+				props: {tags: ['textmodifier:Hint-Mod', 'unrelated']},
+				storyId: story.id,
+				type: 'updatePassage'
+			}
+		]);
+	});
+
+	it("doesn't touch linked passages when the data change leaves field tags the same", () => {
+		updatePassage(
+			story,
+			story.passages[0],
+			{text: '{\n  "displayType": "hint"\n}'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls).toHaveLength(1);
+	});
+
+	it('keeps field tags on linked passages when the node is renamed', () => {
+		updatePassage(
+			story,
+			story.passages[0],
+			{name: 'Renamed'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls[1]).toEqual([
+			{
+				passageId: story.passages[1].id,
+				props: {
+					tags: ['textmodifier:Renamed', 'displayType:hint', 'unrelated']
+				},
+				storyId: story.id,
+				type: 'updatePassage'
+			}
+		]);
+	});
+
+	it("removes field tags when the node's new template doesn't mirror fields", () => {
+		updatePassage(
+			story,
+			story.passages[0],
+			{dataTemplate: 'trigger'},
+			{dontUpdateOthers: true}
+		)(dispatch, getState);
+		expect(dispatchMock.mock.calls[1]).toEqual([
+			{
+				passageId: story.passages[1].id,
+				props: {tags: ['trigger:Hint-Mod', 'unrelated']},
+				storyId: story.id,
+				type: 'updatePassage'
+			}
+		]);
+	});
+});

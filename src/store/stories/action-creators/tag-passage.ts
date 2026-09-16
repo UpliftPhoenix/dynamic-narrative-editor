@@ -6,13 +6,19 @@ import {
 	UpdatePassageAction
 } from '../stories.types';
 import {isValidTagName} from '../../../util/tag';
-import {tagsWithoutOrphanedNegation} from '../../../util/tag-link';
+import {
+	tagLinkTemplate,
+	tagsWithFieldTags,
+	tagsWithoutOrphanedNegation
+} from '../../../util/tag-link';
 import {storyPassageTags} from '../getters';
 import {Thunk} from 'react-hook-thunk-reducer';
 import {colorString} from '../../../util/color';
 
 /**
- * Adds a tag to a passage.
+ * Adds a tag to a passage. Adding a tag link by hand makes the link, so if the
+ * linked node mirrors its fields as tags, those come along--see
+ * util/tag-link.ts.
  */
 export function addPassageTag(
 	story: Story,
@@ -52,14 +58,19 @@ export function addPassageTag(
 			type: 'updatePassage',
 			passageId: passage.id,
 			storyId: story.id,
-			props: {tags: [...passage.tags, tagName]}
+			props: {
+				tags: tagLinkTemplate(tagName)?.fieldTags
+					? tagsWithFieldTags([...passage.tags, tagName], story.passages)
+					: [...passage.tags, tagName]
+			}
 		});
 	};
 }
 
 /**
  * Removes a tag from a passage. Removing a tag link this way breaks the link,
- * so any negation tag it justified goes with it--see util/tag-link.ts.
+ * so any negation or field tags it justified go with it--see
+ * util/tag-link.ts.
  */
 export function removePassageTag(
 	story: Story,
@@ -78,14 +89,18 @@ export function removePassageTag(
 		throw new Error(`This passage does not have the tag "${tagName}".`);
 	}
 
+	const remaining = tagsWithoutOrphanedNegation(
+		passage.tags.filter(t => t !== tagName)
+	);
+
 	return {
 		type: 'updatePassage',
 		passageId: passage.id,
 		storyId: story.id,
 		props: {
-			tags: tagsWithoutOrphanedNegation(
-				passage.tags.filter(t => t !== tagName)
-			)
+			tags: tagLinkTemplate(tagName)?.fieldTags
+				? tagsWithFieldTags(remaining, story.passages)
+				: remaining
 		}
 	};
 }

@@ -60,7 +60,7 @@ export const PassageActions: React.FC<PassageActionsProps> = props => {
 	return (
 		<ButtonBar>
 			<CreatePassageButton getCenter={getCenter} story={story} />
-			{['npc', 'trigger', 'requirement', 'setpiece'].map(id => {
+			{['npc', 'trigger', 'requirement', 'setpiece', 'textmodifier'].map(id => {
 				const template = dataNodeTemplate(id);
 
 				return template ? (

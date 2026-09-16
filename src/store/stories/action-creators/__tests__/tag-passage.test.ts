@@ -126,3 +126,57 @@ describe('removePassageTag', () => {
 		expect(() => removePassageTag(story, passage, 'mock-tag-name')).toThrow();
 	});
 });
+
+describe('tag links to text modifiers', () => {
+	let passage: Passage;
+	let story: Story;
+
+	beforeEach(() => {
+		story = fakeStory(2);
+		story.passages[0].name = 'Hint Mod';
+		story.passages[0].type = 'data';
+		story.passages[0].dataTemplate = 'textmodifier';
+		story.passages[0].text = '{"displayType": "hint"}';
+		passage = story.passages[1];
+	});
+
+	it('addPassageTag adds the field tags along with the link', () => {
+		const dispatch = jest.fn();
+
+		passage.tags = ['unrelated'];
+		addPassageTag(story, passage, 'textmodifier:Hint-Mod')(
+			dispatch,
+			jest.fn()
+		);
+		expect(dispatch.mock.calls[1]).toEqual([
+			{
+				type: 'updatePassage',
+				passageId: passage.id,
+				props: {
+					tags: ['unrelated', 'textmodifier:Hint-Mod', 'displayType:hint']
+				},
+				storyId: story.id
+			}
+		]);
+	});
+
+	it('removePassageTag removes the field tags along with the link', () => {
+		passage.tags = ['textmodifier:Hint-Mod', 'displayType:hint', 'unrelated'];
+		expect(removePassageTag(story, passage, 'textmodifier:Hint-Mod')).toEqual({
+			type: 'updatePassage',
+			passageId: passage.id,
+			props: {tags: ['unrelated']},
+			storyId: story.id
+		});
+	});
+
+	it('removePassageTag leaves a field tag removed by hand alone', () => {
+		passage.tags = ['textmodifier:Hint-Mod', 'displayType:hint', 'unrelated'];
+		expect(removePassageTag(story, passage, 'displayType:hint')).toEqual({
+			type: 'updatePassage',
+			passageId: passage.id,
+			props: {tags: ['textmodifier:Hint-Mod', 'unrelated']},
+			storyId: story.id
+		});
+	});
+});

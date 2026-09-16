@@ -3,7 +3,11 @@ import {dataNodeTemplate} from '../../../util/data-node-templates';
 import {
 	passagePriority,
 	priorityTag,
-	tagLinkName
+	tagLinkName,
+	tagsWithFieldTags,
+	tagsWithoutCompetingLinks,
+	tagsWithoutOrphanedNegation,
+	tagsWithoutOrphanedPriority
 } from '../../../util/tag-link';
 import {colorString} from '../../../util/color';
 import {isDataNode, storyPassageTags} from '../getters';
@@ -13,7 +17,10 @@ import {Passage, StoriesAction, StoriesState, Story} from '../stories.types';
  * Connects a tag-linkable data node to a passage by adding the node's tag link
  * to it (see util/tag-link.ts). If the node's template ranks its links by
  * priority and the passage doesn't have a priority yet, it also gets a
- * priority tag--initially one past the node's last linked passage.
+ * priority tag--initially one past the node's last linked passage. If the
+ * template's links are exclusive, the passage's existing link to another node
+ * of that template is broken, and if the template mirrors its fields as tags,
+ * the passage's field tags are brought up to date.
  */
 export function connectTagLink(
 	story: Story,
@@ -30,6 +37,7 @@ export function connectTagLink(
 		throw new Error('This passage is already linked to this data node.');
 	}
 
+	const keptTags = tagsWithoutCompetingLinks(target.tags, tag);
 	const newTags = [tag];
 
 	if (
@@ -42,6 +50,17 @@ export function connectTagLink(
 
 		newTags.push(priorityTag(linkedCount + 1));
 	}
+
+	let tags = [...keptTags, ...newTags];
+
+	// Breaking a competing link may orphan the priority and negation tags it
+	// justified.
+
+	if (keptTags.length !== target.tags.length) {
+		tags = tagsWithoutOrphanedNegation(tagsWithoutOrphanedPriority(tags));
+	}
+
+	tags = tagsWithFieldTags(tags, story.passages);
 
 	return dispatch => {
 		// If the tag link is new to the story, assign it a color, the same way
@@ -62,7 +81,7 @@ export function connectTagLink(
 			type: 'updatePassage',
 			passageId: target.id,
 			storyId: story.id,
-			props: {tags: [...target.tags, ...newTags]}
+			props: {tags}
 		});
 	};
 }

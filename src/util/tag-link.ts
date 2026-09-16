@@ -6,7 +6,13 @@
 // the node's link handle does.
 
 import {Passage} from '../store/stories/stories.types';
-import {dataNodeTemplate, DataNodeTemplate} from './data-node-templates';
+import {
+	dataNodeTemplate,
+	DataNodeTemplate,
+	dataNodeTemplates,
+	templateFieldDefault
+} from './data-node-templates';
+import {JsonObject, JsonValue} from './json';
 import {Point, Rect} from './geometry';
 
 /**
@@ -209,4 +215,154 @@ export function tagsWithoutOrphanedNegation(tags: string[]): string[] {
 	);
 
 	return tags.filter(tag => !isNegationTag(tag) || justified.has(tag));
+}
+
+// Exclusive links: a passage may be linked to at most one node of a template
+// with `exclusiveLink` set. Linking it to another node of that template moves
+// the link, so the passage never carries two of them.
+
+/**
+ * Returns a set of tags ready to receive a tag link: if the link's template is
+ * exclusive, tag links to other nodes of the same template are removed. The
+ * new link itself isn't added.
+ */
+export function tagsWithoutCompetingLinks(tags: string[], tag: string): string[] {
+	const template = tagLinkTemplate(tag);
+
+	if (!template?.exclusiveLink) {
+		return tags;
+	}
+
+	return tags.filter(
+		other => other === tag || tagLinkTemplate(other)?.id !== template.id
+	);
+}
+
+// Field tags mirror a data node's data onto the passages linked to it. For a
+// node whose template has `fieldTags` set, each top-level string, number or
+// boolean field of its data becomes a `fieldName:value` tag on every linked
+// passage--except fields holding their default value, which add nothing. As
+// with the other derived tags, the link is the only justification: field tags
+// are recomputed from the linked nodes whenever a link is made or broken or a
+// node's data changes, so a field tag edited by hand only lasts until the next
+// recompute.
+
+/**
+ * Is a tag a field tag? True for any tag whose prefix names a field of a
+ * template with `fieldTags` set, whether or not a node currently justifies it.
+ */
+export function isFieldTag(tag: string) {
+	const separator = tag.indexOf(':');
+
+	if (separator === -1) {
+		return false;
+	}
+
+	const name = tag.substring(0, separator);
+
+	return dataNodeTemplates.some(
+		template =>
+			template.fieldTags && template.fields.some(field => field.name === name)
+	);
+}
+
+/**
+ * The tag a field value produces. Whitespace in the value becomes dashes, as
+ * in node names.
+ */
+export function fieldTag(name: string, value: string | number | boolean) {
+	return `${name}:${tagLinkNodeName(String(value))}`;
+}
+
+function isJsonObject(value: JsonValue): value is JsonObject {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Returns the field tags a data node's data produces, or an empty array if the
+ * node's template doesn't mirror its fields, its text isn't a JSON object, or
+ * every field holds its default. Object and array fields never produce tags.
+ */
+export function nodeFieldTags(node: Passage): string[] {
+	if (node.type !== 'data') {
+		return [];
+	}
+
+	const template = dataNodeTemplate(node.dataTemplate);
+
+	if (!template?.fieldTags) {
+		return [];
+	}
+
+	let data: JsonValue;
+
+	try {
+		data = JSON.parse(node.text);
+	} catch (error) {
+		return [];
+	}
+
+	if (!isJsonObject(data)) {
+		return [];
+	}
+
+	const tags: string[] = [];
+
+	for (const field of template.fields) {
+		const value = data[field.name];
+
+		if (
+			typeof value !== 'string' &&
+			typeof value !== 'number' &&
+			typeof value !== 'boolean'
+		) {
+			continue;
+		}
+
+		if (
+			value === templateFieldDefault(field, data) ||
+			(typeof value === 'string' && value.trim() === '')
+		) {
+			continue;
+		}
+
+		tags.push(fieldTag(field.name, value));
+	}
+
+	return tags;
+}
+
+/**
+ * Recomputes a passage's field tags from the nodes it's linked to. Field tags
+ * no linked node justifies are removed, missing ones are added at the end, and
+ * ones that still apply keep their position. `passages` is where the linked
+ * nodes are looked up, usually the whole story--pass an updated copy when a
+ * node is changing in the same operation.
+ */
+export function tagsWithFieldTags(tags: string[], passages: Passage[]): string[] {
+	const links = new Set(tags.filter(tag => tagLinkTemplate(tag)?.fieldTags));
+
+	if (links.size === 0 && !tags.some(isFieldTag)) {
+		return tags;
+	}
+
+	const justified = new Set<string>();
+
+	for (const node of passages) {
+		const link = tagLinkName(node);
+
+		if (link && links.has(link)) {
+			nodeFieldTags(node).forEach(tag => justified.add(tag));
+		}
+	}
+
+	const result = tags.filter(tag => !isFieldTag(tag) || justified.has(tag));
+
+	for (const tag of justified) {
+		if (!result.includes(tag)) {
+			result.push(tag);
+		}
+	}
+
+	return result;
 }

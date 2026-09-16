@@ -2,6 +2,7 @@ import * as React from 'react';
 import {Thunk} from 'react-hook-thunk-reducer';
 import {
 	tagLinkName,
+	tagsWithFieldTags,
 	tagsWithoutOrphanedNegation,
 	tagsWithoutOrphanedPriority
 } from '../../../util/tag-link';
@@ -9,8 +10,8 @@ import {Passage, StoriesAction, StoriesState, Story} from '../stories.types';
 
 /**
  * Deleting a tag-linked data node orphans its tag on every linked passage, so
- * remove those tags first--along with priority and negation tags that no
- * remaining link justifies. See util/tag-link.ts.
+ * remove those tags first--along with priority, negation and field tags that
+ * no remaining link justifies. See util/tag-link.ts.
  */
 function cleanUpTagLinks(
 	story: Story,
@@ -26,21 +27,24 @@ function cleanUpTagLinks(
 	}
 
 	const deletedIds = new Set(deletedPassages.map(passage => passage.id));
+	const survivors = story.passages.filter(
+		passage => !deletedIds.has(passage.id)
+	);
 
-	story.passages.forEach(passage => {
-		if (
-			!deletedIds.has(passage.id) &&
-			passage.tags.some(tag => orphanedTags.includes(tag))
-		) {
+	survivors.forEach(passage => {
+		if (passage.tags.some(tag => orphanedTags.includes(tag))) {
 			dispatch({
 				type: 'updatePassage',
 				passageId: passage.id,
 				storyId: story.id,
 				props: {
-					tags: tagsWithoutOrphanedNegation(
-						tagsWithoutOrphanedPriority(
-							passage.tags.filter(tag => !orphanedTags.includes(tag))
-						)
+					tags: tagsWithFieldTags(
+						tagsWithoutOrphanedNegation(
+							tagsWithoutOrphanedPriority(
+								passage.tags.filter(tag => !orphanedTags.includes(tag))
+							)
+						),
+						survivors
 					)
 				}
 			});

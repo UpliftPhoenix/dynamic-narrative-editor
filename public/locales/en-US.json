@@ -512,7 +512,8 @@
 			"npc": "New NPC Node",
 			"trigger": "New Trigger Node",
 			"requirement": "New Requirement Node",
-			"setpiece": "New Setpiece Node"
+			"setpiece": "New Setpiece Node",
+			"textmodifier": "New Text Modifier Node"
 		},
 		"renameDataNode": "Rename Data Node",
 		"deletePassage": "Delete Passage",

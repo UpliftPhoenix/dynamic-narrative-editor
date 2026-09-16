@@ -138,3 +138,45 @@ describe('deletePassages action creator', () => {
 		]);
 	});
 });
+
+describe('deletePassage action creator with field tags', () => {
+	let dispatch: StoriesDispatch;
+	let dispatchMock: jest.Mock;
+	let getState: () => StoriesState;
+	let story: Story;
+
+	beforeEach(() => {
+		dispatch = jest.fn();
+		dispatchMock = dispatch as jest.Mock;
+		story = fakeStory(3);
+		story.passages[0].name = 'Hint Mod';
+		story.passages[0].type = 'data';
+		story.passages[0].dataTemplate = 'textmodifier';
+		story.passages[0].text = '{"displayType": "hint"}';
+		story.passages[1].tags = [
+			'textmodifier:Hint-Mod',
+			'displayType:hint',
+			'unrelated'
+		];
+		story.passages[2].tags = ['unrelated'];
+		getState = jest.fn(() => [story]);
+	});
+
+	it('removes the field tags a deleted text modifier justified', () => {
+		deletePassage(story, story.passages[0])(dispatch, getState);
+		expect(dispatchMock.mock.calls[0]).toEqual([
+			{
+				type: 'updatePassage',
+				passageId: story.passages[1].id,
+				props: {tags: ['unrelated']},
+				storyId: story.id
+			}
+		]);
+	});
+
+	it("doesn't touch passages that weren't linked to the deleted node", () => {
+		deletePassage(story, story.passages[0])(dispatch, getState);
+		expect(dispatchMock.mock.calls).toHaveLength(2);
+		expect(dispatchMock.mock.calls[1][0].type).toBe('deletePassage');
+	});
+});

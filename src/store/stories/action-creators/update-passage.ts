@@ -1,8 +1,11 @@
 import escapeRegExp from 'lodash/escapeRegExp';
 import {Thunk} from 'react-hook-thunk-reducer';
+import isEqual from 'lodash/isEqual';
+import {dataNodeTemplate} from '../../../util/data-node-templates';
 import {
 	tagLinkName,
 	tagLinkNegationTag,
+	tagsWithFieldTags,
 	tagsWithoutOrphanedNegation,
 	tagsWithoutOrphanedPriority
 } from '../../../util/tag-link';
@@ -71,8 +74,16 @@ export function updatePassage(
 		// no longer has a tag link at all. This runs regardless of
 		// dontUpdateOthers--that option only concerns story link side effects.
 
+		const updatedPassage = {...passage, ...props};
 		const oldTagLink = tagLinkName(passage);
-		const newTagLink = tagLinkName({...passage, ...props});
+		const newTagLink = tagLinkName(updatedPassage);
+
+		// Field tags on linked passages are derived from this node's data, so
+		// recomputing them needs the story as it will be after this update.
+
+		const updatedPassages = story.passages.map(other =>
+			other.id === passage.id ? updatedPassage : other
+		);
 
 		if (oldTagLink && oldTagLink !== newTagLink) {
 			// The negation tag names the node, so a rename moves it along with the
@@ -88,9 +99,9 @@ export function updatePassage(
 					linkedPassage.id !== passage.id &&
 					linkedPassage.tags.includes(oldTagLink)
 				) {
-					// Also drop priority and negation tags that no remaining link
+					// Also drop priority, negation and field tags that no remaining link
 					// justifies, e.g. when the node's new template doesn't rank or negate
-					// its links.
+					// its links or mirror its fields.
 
 					const movedTags = newTagLink
 						? linkedPassage.tags.map(tag =>
@@ -103,14 +114,17 @@ export function updatePassage(
 						passageId: linkedPassage.id,
 						storyId: story.id,
 						props: {
-							tags: tagsWithoutOrphanedNegation(
-								tagsWithoutOrphanedPriority(
-									oldNegationTag && newNegationTag
-										? movedTags.map(tag =>
-												tag === oldNegationTag ? newNegationTag : tag
-										  )
-										: movedTags
-								)
+							tags: tagsWithFieldTags(
+								tagsWithoutOrphanedNegation(
+									tagsWithoutOrphanedPriority(
+										oldNegationTag && newNegationTag
+											? movedTags.map(tag =>
+													tag === oldNegationTag ? newNegationTag : tag
+											  )
+											: movedTags
+									)
+								),
+								updatedPassages
 							)
 						}
 					});
@@ -135,6 +149,35 @@ export function updatePassage(
 					}
 				});
 			}
+		} else if (
+			newTagLink &&
+			dataNodeTemplate(updatedPassage.dataTemplate)?.fieldTags &&
+			props.text !== undefined &&
+			props.text !== oldText
+		) {
+			// The node's data changed while its tag link stayed put, so the field
+			// tags mirrored onto its linked passages may be stale. Recompute them
+			// and update only the passages where they actually changed.
+
+			story.passages.forEach(linkedPassage => {
+				if (
+					linkedPassage.id === passage.id ||
+					!linkedPassage.tags.includes(newTagLink)
+				) {
+					return;
+				}
+
+				const tags = tagsWithFieldTags(linkedPassage.tags, updatedPassages);
+
+				if (!isEqual(tags, linkedPassage.tags)) {
+					dispatch({
+						type: 'updatePassage',
+						passageId: linkedPassage.id,
+						storyId: story.id,
+						props: {tags}
+					});
+				}
+			});
 		}
 
 		if (props.name) {

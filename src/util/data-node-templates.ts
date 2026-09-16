@@ -12,6 +12,7 @@ import npcPortrait from './npc-portrait.png';
 import requirementIcon from './requirement-icon.png';
 import triggerIcon from './trigger-icon.png';
 import setpieceIcon from './setpiece-icon.png';
+import textModifierIcon from './text-modifier-icon.png';
 
 /**
  * A condition on a sibling field: it must either equal or not equal a value.
@@ -120,6 +121,21 @@ export interface DataNodeTemplate {
 	 * lines and arrowheads) take this color instead of the default blue.
 	 */
 	color?: string;
+	/**
+	 * If true (only meaningful with `tagLink`), a passage can be linked to at
+	 * most one node using this template at a time. Linking it to another node
+	 * of the same template moves the link there.
+	 */
+	exclusiveLink?: boolean;
+	/**
+	 * If true (only meaningful with `tagLink`), the node's data is mirrored
+	 * onto the passages linked to it as tags: each top-level string, number or
+	 * boolean field becomes a `fieldName:value` tag on every linked passage,
+	 * except fields holding their default value, which add no tag. The tags
+	 * follow the node's data--they're recomputed whenever the node's data or its
+	 * links change. See util/tag-link.ts.
+	 */
+	fieldTags?: boolean;
 	/**
 	 * Editable fields, in display order.
 	 */
@@ -306,6 +322,26 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 		cardImage: setpieceIcon,
 		color: '#ff5628',
 		fields: []
+	},
+	{
+		// Changes how linked passages' text is presented in-game. Linked
+		// passages carry e.g. a `displayType:hint` tag; the "default" display
+		// type is the same as an unmodified passage, so it adds no tag.
+		id: 'textmodifier',
+		name: 'Text Modifier',
+		silentValues: {},
+		tagLink: true,
+		exclusiveLink: true,
+		fieldTags: true,
+		cardImage: textModifierIcon,
+		color: '#2ec8ff',
+		fields: [
+			{
+				name: 'displayType',
+				type: 'string',
+				enum: ['default', 'hint', 'bark']
+			}
+		]
 	}
 ];
 
