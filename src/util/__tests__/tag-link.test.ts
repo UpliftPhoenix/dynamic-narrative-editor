@@ -217,6 +217,7 @@ describe('isFieldTag', () => {
 	it('recognizes every field of a field-tag template', () => {
 		expect(isFieldTag('sequence:oneShotRandom')).toBe(true);
 		expect(isFieldTag('sequence:default')).toBe(true);
+		expect(isFieldTag('sequenceRepeatsLast:true')).toBe(true);
 	});
 
 	it('returns false for other tags', () => {
@@ -269,6 +270,26 @@ describe('nodeFieldTags', () => {
 				modifier('{"displayType": "default", "sequence": "oneShotOrdered"}')
 			)
 		).toEqual(['sequence:oneShotOrdered']);
+	});
+
+	it('mirrors an optional boolean only while it is on', () => {
+		expect(
+			nodeFieldTags(
+				modifier('{"displayType": "default", "sequenceRepeatsLast": true}')
+			)
+		).toEqual(['sequenceRepeatsLast:true']);
+		expect(
+			nodeFieldTags(
+				modifier('{"displayType": "default", "sequenceRepeatsLast": false}')
+			)
+		).toEqual([]);
+		expect(
+			nodeFieldTags(
+				modifier(
+					'{"sequence": "oneShotOrdered", "sequenceRepeatsLast": true}'
+				)
+			)
+		).toEqual(['sequence:oneShotOrdered', 'sequenceRepeatsLast:true']);
 	});
 
 	it('omits fields holding their default value', () => {

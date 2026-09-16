@@ -365,6 +365,13 @@ export const dataNodeTemplates: DataNodeTemplate[] = [
 				name: 'sequence',
 				type: 'string',
 				enum: ['default', 'oneShotOrdered', 'oneShotRandom']
+			},
+			{
+				// Mirrored as `sequenceRepeatsLast:true` only while on; off or
+				// absent adds no tag.
+				name: 'sequenceRepeatsLast',
+				type: 'boolean',
+				optional: true
 			}
 		]
 	}
