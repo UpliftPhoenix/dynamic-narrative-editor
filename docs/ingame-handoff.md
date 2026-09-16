@@ -66,7 +66,8 @@ Tags a passage may carry:
 | --- | --- |
 | `textmodifier:<Name>` | The passage is linked to a Text Modifier node. Informational only. |
 | `displayType:hint` | Present the passage as a hint. |
-| `displayType:bark` | Present the passage as an NPC bark. |
+| `displayType:bark` | Present the passage as an NPC bark - in other words, the dialogue speech bubbles are presented without grabbing focus and play out their full duration without hooking up the skip input from the player. |
+| `displayType:dialog` | Present the passage as a dialog. If the passage has multiple lines, show each line as a new dialog with a "Next" button. On the last line, show "Continue". All dialogs should show an exit button, if the player exits, cancel the rest of the dialogs in the sequence and stop talking to the NPC. |
 | *(no `displayType` tag)* | Default presentation, the same as any passage today. |
 
 Rules the editor guarantees:
@@ -120,7 +121,7 @@ on, so existing NPC handling must keep accepting an empty object.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `proximityTrigger` | object | no | If present, the NPC starts its dialog on its own when the player comes within range. Absent means the NPC only talks when interacted with, as today. |
+| `proximityTrigger` | object | no | If present, the NPC starts its dialog on its own when the player comes within range, and can't be interacted with. Absent means the NPC only talks when interacted with, as today. |
 | `proximityTrigger.triggerDistance` | number ≥ 0 | yes, when the object is present | Distance at which the trigger fires. Units are the game's world units; the editor does not constrain them. |
 | `proximityTrigger.retriggerDelay` | number ≥ 0 | no | Minimum time before the trigger can fire again. Absent means it does not retrigger. Units are the game's; the editor does not constrain them. |
 
